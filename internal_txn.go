@@ -536,13 +536,24 @@ func endExternal(s ExternalSegment) error {
 	defer txn.Unlock()
 
 	if txn.finished {
+		txn.Config.Logger.Debug("cannot end external segment: transaction has already ended", nil)
 		return errAlreadyEnded
 	}
 	u, err := externalSegmentURL(s)
 	if nil != err {
+		txn.Config.Logger.Debug("error getting external segment URL", map[string]interface{}{
+			"error": err,
+		})
 		return err
 	}
-	return internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u, s.Response)
+
+	err = internal.EndExternalSegment(&txn.TxnData, s.StartTime.start, time.Now(), u, s.Response)
+	if err != nil {
+		txn.Config.Logger.Debug("error ending external segment", map[string]interface{}{
+			"error": err,
+		})
+	}
+	return err
 }
 
 func outboundHeaders(s ExternalSegment) http.Header {
